@@ -71,6 +71,7 @@ impl pallet_difttt::Config for Test {
 	type Call = Call;
 	type UnsignedPriority = UnsignedPriority;
 	type WeightInfo = ();
+	type DexOperator = ZenlinkProtocol;
 }
 
 type Extrinsic = TestXt<Call, ()>;

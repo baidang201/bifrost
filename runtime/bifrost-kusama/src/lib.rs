@@ -1732,6 +1732,7 @@ impl pallet_difttt::Config for Runtime {
 	type Call = Call;
 	type UnsignedPriority = UnsignedPriority;
 	type WeightInfo = pallet_difttt::weights::SubstrateWeight<Runtime>;
+	type DexOperator = ZenlinkProtocol;
 }
 
 parameter_types! {

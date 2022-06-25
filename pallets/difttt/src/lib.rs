@@ -88,6 +88,7 @@ pub mod pallet {
 	};
 
 	use sp_std::{collections::btree_map::BTreeMap, prelude::*, str};
+	use zenlink_protocol::{AssetBalance, AssetId, ExportZenlink};
 
 	const FETCH_TIMEOUT_PERIOD: u64 = 3000; // in milli-seconds
 	const LOCK_TIMEOUT_EXPIRATION: u64 = FETCH_TIMEOUT_PERIOD + 1000; // in milli-seconds
@@ -147,6 +148,8 @@ pub mod pallet {
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
+
+		type DexOperator: ExportZenlink<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
