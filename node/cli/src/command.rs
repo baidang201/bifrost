@@ -523,24 +523,24 @@ pub fn run() -> Result<()> {
 
 			let chain_spec = cli.load_spec(&params.chain.clone().unwrap_or_default())?;
 			let state_version = Cli::native_runtime_version(&chain_spec).state_version();
-			let output_buf = with_runtime_or_err!(chain_spec, {
-				{
-					let block: Block = generate_genesis_block(&chain_spec, state_version)
-						.map_err(|e| format!("{:?}", e))?;
-					let raw_header = block.header().encode();
-					let buf = if params.raw {
-						raw_header
-					} else {
-						format!("0x{:?}", HexDisplay::from(&block.header().encode())).into_bytes()
-					};
-					buf
-				}
-			});
-			if let Some(output) = &params.output {
-				std::fs::write(output, output_buf)?;
-			} else {
-				std::io::stdout().write_all(&output_buf)?;
-			}
+			// let output_buf = with_runtime_or_err!(chain_spec, {
+			// 	{
+			// 		let block: Block = generate_genesis_block(&chain_spec, state_version)
+			// 			.map_err(|e| format!("{:?}", e))?;
+			// 		let raw_header = block.header().encode();
+			// 		let buf = if params.raw {
+			// 			raw_header
+			// 		} else {
+			// 			format!("0x{:?}", HexDisplay::from(&block.header().encode())).into_bytes()
+			// 		};
+			// 		buf
+			// 	}
+			// });
+			// if let Some(output) = &params.output {
+			// 	std::fs::write(output, output_buf)?;
+			// } else {
+			// 	std::io::stdout().write_all(&output_buf)?;
+			// }
 
 			Ok(())
 		},

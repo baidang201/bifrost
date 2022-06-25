@@ -105,6 +105,9 @@ bifrost-asset-registry = { path = "../../pallets/asset-registry", default-featur
 bifrost-vstoken-conversion = { path = "../../pallets/vstoken-conversion", default-features = false }
 bifrost-farming = { path = "../../pallets/farming", default-features = false }
 bifrost-farming-rpc-runtime-api = { path = "../../pallets/farming/rpc/runtime-api", default-features = false }
+# Local Dependencies
+pallet-difttt = { version = "4.0.0-dev", default-features = false, path = "../../pallets/difttt" }
+
 
 # orml
 orml-currencies = { version = "0.4.1-dev", default-features = false }
@@ -203,6 +206,7 @@ std = [
 	"bifrost-slp/std",
 	"bifrost-vtoken-minting/std",
 	"bifrost-asset-registry/std",
+	"pallet-difttt/std",
 	"zenlink-protocol/std",
 	"zenlink-protocol-runtime-api/std",
 	"merkle-distributor/std",

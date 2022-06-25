@@ -1722,6 +1722,19 @@ impl xcm_interface::Config for Runtime {
 }
 
 parameter_types! {
+	pub const UnsignedPriority: BlockNumber = 1;
+}
+
+/// Configure the pallet-difttt in pallets/difttt.
+impl pallet_difttt::Config for Runtime {
+	type Event = Event;
+	type TimeProvider = pallet_timestamp::Pallet<Runtime>;
+	type Call = Call;
+	type UnsignedPriority = UnsignedPriority;
+	type WeightInfo = pallet_difttt::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
 	pub const MaxTypeEntryPerBlock: u32 = 10;
 	pub const MaxRefundPerBlock: u32 = 10;
 }
@@ -2007,6 +2020,7 @@ construct_runtime! {
 		XcmInterface: xcm_interface::{Pallet, Call, Storage, Event<T>} = 117,
 		VstokenConversion: bifrost_vstoken_conversion::{Pallet, Call, Storage, Event<T>} = 118,
 		Farming: bifrost_farming::{Pallet, Call, Storage, Event<T>} = 119,
+		DiftttModule: pallet_difttt,
 	}
 }
 
