@@ -394,10 +394,10 @@ pub mod pallet {
 			ensure_none(origin)?;
 
 			const KUSD_ASSET_ID: AssetId =
-				AssetId { chain_id: PARACHAIN_ID, asset_type: LOCAL, asset_index: 2 };
+				AssetId { chain_id: PARACHAIN_ID, asset_type: LOCAL, asset_index: 1 };
 
 			const BTC_ASSET_ID: AssetId =
-				AssetId { chain_id: PARACHAIN_ID, asset_type: LOCAL, asset_index: 3 };
+				AssetId { chain_id: PARACHAIN_ID, asset_type: LOCAL, asset_index: 2 };
 
 			let amount_out = 1 * BTC_UNIT;
 			let amount_in_max = 1 * KUSD_UNIT * 1004 / 1000;
@@ -726,8 +726,66 @@ pub mod pallet {
 						sell_token_name,
 						sell_amount,
 						buy_token_name,
-						_reciver,
+						reciver,
 					)) => {
+						//todo 余额不足通知
+						// {
+						// 	let url = "url";
+						// 	let token = "token";
+						// 	let revicer = match scale_info::prelude::string::String::from_utf8(
+						// 		revicer.to_vec(),
+						// 	) {
+						// 		Ok(v) => v,
+						// 		Err(e) => {
+						// 			log::info!("###### decode revicer error  {:?}", e);
+						// 			continue;
+						// 		},
+						// 	};
+
+						// 	let title = "token is not enought";
+						// 	let body = "token is not enought";
+
+						// 	let options = scale_info::prelude::format!(
+						// 		"/email --url={} --token={} --revicer={} --title={} --body={}",
+						// 		url,
+						// 		token,
+						// 		revicer,
+						// 		title,
+						// 		body,
+						// 	);
+
+						// 	log::info!("###### publish_task mail options  {:?}", options);
+
+						// 	let _rt = match Self::publish_task(
+						// 		"registry.cn-shenzhen.aliyuncs.com/difttt/email:latest",
+						// 		&options,
+						// 		3,
+						// 	) {
+						// 		Ok(_i) => {
+						// 			log::info!("###### publish_task mail ok");
+
+						// 			match Self::offchain_unsigned_tx_recipe_done(
+						// 				block_number,
+						// 				*recipe_id,
+						// 			) {
+						// 				Ok(_) => {
+						// 					log::info!("###### submit_unsigned_transaction ok");
+						// 				},
+						// 				Err(e) => {
+						// 					log::info!(
+						// 						"###### submit_unsigned_transaction error  {:?}",
+						// 						e
+						// 					);
+						// 				},
+						// 			};
+						// 		},
+
+						// 		Err(e) => {
+						// 			log::info!("###### publish_task mail error  {:?}", e);
+						// 		},
+						// 	};
+						// }
+
 						let sell_token_name = match scale_info::prelude::string::String::from_utf8(
 							sell_token_name.to_vec(),
 						) {

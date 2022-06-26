@@ -36,7 +36,8 @@
       "KAR",
       "ZLK",
       "PHA",
-      "RMRK"
+      "RMRK",
+      "BTC"
     ]
   },
   "relay_chain": "kusama-local",

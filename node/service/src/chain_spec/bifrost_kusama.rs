@@ -102,6 +102,7 @@ fn bifrost_kusama_properties() -> Properties {
 		CurrencyId::Token(TokenSymbol::PHA),
 		CurrencyId::Token(TokenSymbol::RMRK),
 		CurrencyId::Token(TokenSymbol::MOVR),
+		CurrencyId::Token(TokenSymbol::BTC),
 	]
 	.iter()
 	.for_each(|token| {
