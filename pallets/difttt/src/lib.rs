@@ -30,7 +30,7 @@ pub enum Triger {
 	Schedule(u64, u64), //insert_time,  timestamp
 	PriceGT(u64, u64),  //insert_time,  price   //todo,price use float
 	PriceLT(u64, u64),  //insert_time,  price   //todo,price use float
-	Arh999LT(u64, u64, u64), /* insert_time,  indicator, Minimum seconds buy interval   //todo,
+	Arh999LT(u64, u64, u64), /* insert_time,  indicator, seconds buy interval   //todo,
 	                     * indicator use float */
 }
 
@@ -49,7 +49,13 @@ pub enum Action<AccountId> {
 	 * by asymmetric encryption,
 	 * revicer, title, body */
 	Oracle(BoundedVec<u8, ConstU32<32>>, BoundedVec<u8, ConstU32<128>>), // TokenName, SourceURL
-	BuyToken(AccountId, BoundedVec<u8, ConstU32<32>>, u64),              // TokenName, Amount
+	BuyToken(
+		AccountId,
+		BoundedVec<u8, ConstU32<32>>,
+		u64,
+		BoundedVec<u8, ConstU32<32>>,
+		BoundedVec<u8, ConstU32<128>>,
+	), /* Address, SellTokenName, SellAmount, BuyTokenName, info-mail-recevicer */
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -88,13 +94,16 @@ pub mod pallet {
 	};
 
 	use sp_std::{collections::btree_map::BTreeMap, prelude::*, str};
-	use zenlink_protocol::{AssetBalance, AssetId, ExportZenlink};
+	use zenlink_protocol::{AssetBalance, AssetId, ExportZenlink, LOCAL, NATIVE};
 
 	const FETCH_TIMEOUT_PERIOD: u64 = 3000; // in milli-seconds
 	const LOCK_TIMEOUT_EXPIRATION: u64 = FETCH_TIMEOUT_PERIOD + 1000; // in milli-seconds
 	const LOCK_BLOCK_EXPIRATION: u32 = 3; // in block number
 	const ARH999_DECIMAL_PRECISION: usize = 2;
 
+	const KUSD_UNIT: u128 = 1_000_000_000_000;
+	const BTC_UNIT: u128 = 100_000_000;
+	pub const PARACHAIN_ID: u32 = 2001;
 	/*
 	{
 		"data": [
@@ -212,7 +221,7 @@ pub mod pallet {
 		RecipeTurnOned(u64),
 		RecipeTurnOffed(u64),
 		RecipeDone(u64),
-		TokenBought(T::AccountId, Vec<u8>, u64),
+		TokenBought(T::AccountId, Vec<u8>, u64, Vec<u8>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -377,13 +386,39 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			_block_number: T::BlockNumber,
 			buyer: T::AccountId,
-			token_name: Vec<u8>,
-			amount: u64,
+			sell_token_name: Vec<u8>,
+			sell_amount: u64,
+			buy_token_name: Vec<u8>,
 		) -> DispatchResult {
 			// This ensures that the function can only be called via unsigned transaction.
 			ensure_none(origin)?;
 
-			Self::deposit_event(Event::TokenBought(buyer, token_name, amount));
+			const KUSD_ASSET_ID: AssetId =
+				AssetId { chain_id: PARACHAIN_ID, asset_type: LOCAL, asset_index: 2 };
+
+			const BTC_ASSET_ID: AssetId =
+				AssetId { chain_id: PARACHAIN_ID, asset_type: LOCAL, asset_index: 3 };
+
+			let amount_out = 1 * BTC_UNIT;
+			let amount_in_max = 1 * KUSD_UNIT * 1004 / 1000;
+			let path = vec![KUSD_ASSET_ID, BTC_ASSET_ID];
+
+			if T::DexOperator::inner_swap_assets_for_exact_assets(
+				&buyer,
+				amount_out,
+				sell_amount.into(),
+				&path,
+				&buyer,
+			)
+			.is_ok()
+			{
+				Self::deposit_event(Event::TokenBought(
+					buyer,
+					sell_token_name,
+					sell_amount,
+					buy_token_name,
+				));
+			}
 
 			Ok(())
 		}
@@ -550,7 +585,7 @@ pub mod pallet {
 							Ok(v) => v,
 							Err(e) => {
 								log::info!("###### decode url error  {:?}", e);
-								continue
+								continue;
 							},
 						};
 
@@ -559,7 +594,7 @@ pub mod pallet {
 								Ok(v) => v,
 								Err(e) => {
 									log::info!("###### decode token error  {:?}", e);
-									continue
+									continue;
 								},
 							};
 
@@ -569,7 +604,7 @@ pub mod pallet {
 							Ok(v) => v,
 							Err(e) => {
 								log::info!("###### decode revicer error  {:?}", e);
-								continue
+								continue;
 							},
 						};
 
@@ -578,7 +613,7 @@ pub mod pallet {
 								Ok(v) => v,
 								Err(e) => {
 									log::info!("###### decode title error  {:?}", e);
-									continue
+									continue;
 								},
 							};
 
@@ -587,7 +622,7 @@ pub mod pallet {
 								Ok(v) => v,
 								Err(e) => {
 									log::info!("###### decode body error  {:?}", e);
-									continue
+									continue;
 								},
 							};
 
@@ -639,7 +674,7 @@ pub mod pallet {
 							Ok(v) => v,
 							Err(e) => {
 								log::info!("###### decode token_name error  {:?}", e);
-								continue
+								continue;
 							},
 						};
 						let source_url = match scale_info::prelude::string::String::from_utf8(
@@ -648,7 +683,7 @@ pub mod pallet {
 							Ok(v) => v,
 							Err(e) => {
 								log::info!("###### decode source_url error  {:?}", e);
-								continue
+								continue;
 							},
 						};
 						let options = scale_info::prelude::format!(
@@ -686,14 +721,30 @@ pub mod pallet {
 							},
 						};
 					},
-					Some(Action::BuyToken(account_id, token_name, amount)) => {
-						let token_name = match scale_info::prelude::string::String::from_utf8(
-							token_name.to_vec(),
+					Some(Action::BuyToken(
+						account_id,
+						sell_token_name,
+						sell_amount,
+						buy_token_name,
+						_reciver,
+					)) => {
+						let sell_token_name = match scale_info::prelude::string::String::from_utf8(
+							sell_token_name.to_vec(),
 						) {
 							Ok(v) => v,
 							Err(e) => {
-								log::info!("###### decode token_name error  {:?}", e);
-								continue
+								log::info!("###### decode sell_token_name error  {:?}", e);
+								continue;
+							},
+						};
+
+						let buy_token_name = match scale_info::prelude::string::String::from_utf8(
+							buy_token_name.to_vec(),
+						) {
+							Ok(v) => v,
+							Err(e) => {
+								log::info!("###### decode buy_token_name error  {:?}", e);
+								continue;
 							},
 						};
 
@@ -701,8 +752,9 @@ pub mod pallet {
 							block_number,
 							*recipe_id,
 							account_id,
-							token_name.as_bytes().to_vec(),
-							amount,
+							sell_token_name.as_bytes().to_vec(),
+							sell_amount,
+							buy_token_name.as_bytes().to_vec(),
 						) {
 							Ok(_) => {
 								log::info!("###### submit_unsigned_transaction ok");
@@ -745,8 +797,9 @@ pub mod pallet {
 				Call::buy_token_unsigned {
 					block_number: _,
 					buyer: _,
-					token_name: _,
-					amount: _,
+					sell_token_name: _,
+					sell_amount: _,
+					buy_token_name: _,
 				} => valid_tx(b"buy_token_unsigned".to_vec()),
 				_ => InvalidTransaction::Call.into(),
 			}
@@ -782,7 +835,7 @@ pub mod pallet {
 			// Let's check the status code before we proceed to reading the response.
 			if response.code != 200 {
 				log::warn!("Unexpected status code: {}", response.code);
-				return Err(http::Error::Unknown)
+				return Err(http::Error::Unknown);
 			}
 
 			// Next we want to fully read the response body and collect it to a vector of bytes.
@@ -861,7 +914,7 @@ pub mod pallet {
 			// Let's check the status code before we proceed to reading the response.
 			if response.code != 200 {
 				log::warn!("Unexpected status code: {}", response.code);
-				return Err(http::Error::Unknown)
+				return Err(http::Error::Unknown);
 			}
 
 			// Next we want to fully read the response body and collect it to a vector of bytes.
@@ -881,7 +934,7 @@ pub mod pallet {
 				Ok(v) => v,
 				Err(e) => {
 					log::error!("fetch_arh999 ParseError error 1: {:?}", e);
-					return Err(http::Error::Unknown)
+					return Err(http::Error::Unknown);
 				},
 			};
 
@@ -892,7 +945,7 @@ pub mod pallet {
 				Ok(v) => v,
 				Err(e) => {
 					log::info!("###### decode source_url error  {:?}", e);
-					return Err(http::Error::Unknown)
+					return Err(http::Error::Unknown);
 				},
 			};
 
@@ -904,7 +957,7 @@ pub mod pallet {
 				Ok(v) => v,
 				Err(e) => {
 					log::info!("###### decode parse error1  {:?}", e);
-					return Err(http::Error::Unknown)
+					return Err(http::Error::Unknown);
 				},
 			};
 			log::info!("### arh999_u64: {:?}", &arh999_u64);
@@ -917,7 +970,7 @@ pub mod pallet {
 				Ok(v) => v,
 				Err(e) => {
 					log::info!("###### decode parse error2  {:?}", e);
-					return Err(http::Error::Unknown)
+					return Err(http::Error::Unknown);
 				},
 			};
 			log::info!("### format_data: {:?}", &arh999_sub);
@@ -958,7 +1011,7 @@ pub mod pallet {
 
 			if response.code != 200 {
 				log::info!("Unexpected status code: {}", response.code);
-				return Err(http::Error::Unknown)
+				return Err(http::Error::Unknown);
 			}
 
 			let body = response.body().collect::<Vec<u8>>();
@@ -971,7 +1024,7 @@ pub mod pallet {
 
 			if "ok" != body_str {
 				log::info!("publish task fail: {}", body_str);
-				return Err(http::Error::Unknown)
+				return Err(http::Error::Unknown);
 			}
 
 			Ok(0)
@@ -993,10 +1046,17 @@ pub mod pallet {
 			block_number: T::BlockNumber,
 			_recipe_id: u64,
 			buyer: T::AccountId,
-			token_name: Vec<u8>,
-			amount: u64,
+			sell_token_name: Vec<u8>,
+			sell_amount: u64,
+			buy_token_name: Vec<u8>,
 		) -> Result<(), Error<T>> {
-			let call = Call::buy_token_unsigned { block_number, buyer, token_name, amount };
+			let call = Call::buy_token_unsigned {
+				block_number,
+				buyer,
+				sell_token_name,
+				sell_amount,
+				buy_token_name,
+			};
 
 			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into()).map_err(|e| {
 				log::error!("Failed in offchain_unsigned_tx {:?}", e);
