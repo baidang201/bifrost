@@ -1735,6 +1735,11 @@ impl pallet_difttt::Config for Runtime {
 	type DexOperator = ZenlinkProtocol;
 }
 
+impl pallet_sudo::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+}
+
 parameter_types! {
 	pub const MaxTypeEntryPerBlock: u32 = 10;
 	pub const MaxRefundPerBlock: u32 = 10;
@@ -2022,6 +2027,7 @@ construct_runtime! {
 		VstokenConversion: bifrost_vstoken_conversion::{Pallet, Call, Storage, Event<T>} = 118,
 		Farming: bifrost_farming::{Pallet, Call, Storage, Event<T>} = 119,
 		DiftttModule: pallet_difttt,
+		Sudo: pallet_sudo,
 	}
 }
 

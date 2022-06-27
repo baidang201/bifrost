@@ -107,6 +107,7 @@ bifrost-farming = { path = "../../pallets/farming", default-features = false }
 bifrost-farming-rpc-runtime-api = { path = "../../pallets/farming/rpc/runtime-api", default-features = false }
 # Local Dependencies
 pallet-difttt = { version = "4.0.0-dev", default-features = false, path = "../../pallets/difttt" }
+pallet-sudo = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }
 
 
 # orml
@@ -155,6 +156,7 @@ std = [
 	"pallet-scheduler/std",
 	"pallet-elections-phragmen/std",
 	"pallet-tips/std",
+	"pallet-sudo/std",
 	"sp-api/std",
 	"sp-arithmetic/std",
 	"sp-block-builder/std",

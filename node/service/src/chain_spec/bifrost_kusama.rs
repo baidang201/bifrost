@@ -26,7 +26,7 @@ use bifrost_kusama_runtime::{
 	DefaultBlocksPerRound, DemocracyConfig, GenesisConfig, IndicesConfig, InflationInfo,
 	ParachainInfoConfig, ParachainStakingConfig, PolkadotXcmConfig, Range, SS58Prefix, SalpConfig,
 	SalpLiteConfig, SessionConfig, SystemConfig, TechnicalCommitteeConfig,
-	TechnicalMembershipConfig, TokensConfig, VestingConfig, WASM_BINARY,
+	TechnicalMembershipConfig, TokensConfig, VestingConfig, SudoConfig, WASM_BINARY,
 };
 use bifrost_runtime_common::{dollar, AuraId};
 use cumulus_primitives_core::ParaId;
@@ -167,6 +167,10 @@ pub fn bifrost_genesis(
 		},
 		aura: Default::default(),
 		aura_ext: Default::default(),
+		sudo: SudoConfig {
+			// Assign network admin rights.
+			key: Some(get_account_id_from_seed::<sr25519::Public>("Alice")),
+		},
 		parachain_system: Default::default(),
 		vesting: VestingConfig { vesting: vestings },
 		tokens: TokensConfig { balances: tokens },
@@ -302,8 +306,8 @@ fn local_config_genesis(id: ParaId) -> GenesisConfig {
 		})
 		.collect();
 
-	let council_membership = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
-	let technical_committee_membership = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
+	let council_membership = vec![get_account_id_from_seed::<sr25519::Public>("Alice"), get_account_id_from_seed::<sr25519::Public>("Bob")];
+	let technical_committee_membership = vec![get_account_id_from_seed::<sr25519::Public>("Alice"), get_account_id_from_seed::<sr25519::Public>("Bob")];
 	let salp_multisig: AccountId =
 		hex!["49daa32c7287890f38b7e1a8cd2961723d36d20baa0bf3b82e0c4bdda93b1c0a"].into();
 	let salp_lite_multisig: AccountId =
