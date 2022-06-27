@@ -221,6 +221,7 @@ pub mod pallet {
 		RecipeTurnOned(u64),
 		RecipeTurnOffed(u64),
 		RecipeDone(u64),
+		RecipeTrigerTimeUpdated(u64, u64),
 		TokenBought(T::AccountId, Vec<u8>, u64, Vec<u8>),
 	}
 
@@ -374,6 +375,29 @@ pub mod pallet {
 				if let Some(recipe) = recipe {
 					recipe.done = true;
 					Self::deposit_event(Event::RecipeDone(recipe_id));
+				}
+				Ok(())
+			})?;
+
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn update_recipe_triger_time_unsigned(
+			origin: OriginFor<T>,
+			_block_number: T::BlockNumber,
+			recipe_id: u64,
+			timestamp: u64,
+		) -> DispatchResult {
+			// This ensures that the function can only be called via unsigned transaction.
+			ensure_none(origin)?;
+
+			ensure!(MapRecipe::<T>::contains_key(&recipe_id), Error::<T>::RecipeIdNotExist);
+
+			MapRecipe::<T>::try_mutate(recipe_id, |recipe| -> DispatchResult {
+				if let Some(recipe) = recipe {
+					recipe.last_triger_timestamp = timestamp;
+					Self::deposit_event(Event::RecipeTrigerTimeUpdated(recipe_id, timestamp));
 				}
 				Ok(())
 			})?;
@@ -544,23 +568,45 @@ pub mod pallet {
 								},
 							};
 						},
-						Some(Triger::Arh999LT(_, indicator, min_interval)) => {
+						Some(Triger::Arh999LT(_, indicator, interval)) => {
 							let _fetch_arh999 = match Self::fetch_arh999() {
 								Ok(fetch_arh999) => {
 									//fetch_price{"USD":19670.47} => 1967047
 									log::info!(
-										"###### Arh999LT indicator {:?}   fetch_arh999{:?}  min_interval {:?}  last_triger_timestamp  {:?} ",
+										"###### Arh999LT indicator {:?}   fetch_arh999{:?}  interval {:?}  last_triger_timestamp  {:?} ",
 										indicator,
 										fetch_arh999,
-										min_interval,
+										interval,
 										recipe.last_triger_timestamp,
 									);
-									if indicator > fetch_arh999 {
-										(*recipe).times += 1;
-										//(*recipe).done = true;
 
-										map_running_action_recipe_task
-											.insert(*recipe_id, recipe.clone());
+									if timestamp_now.as_secs() - recipe.last_triger_timestamp >
+										interval
+									{
+										(*recipe).last_triger_timestamp = timestamp_now.as_secs();
+										match Self::offchain_unsigned_tx_update_recipe_triger_time(
+											block_number,
+											*recipe_id,
+											timestamp_now.as_secs(),
+										) {
+											Ok(_) => {
+												log::info!("###### submit_unsigned_transaction ok");
+											},
+											Err(e) => {
+												log::info!(
+													"###### submit_unsigned_transaction error  {:?}",
+													e
+												);
+											},
+										};
+
+										if indicator > fetch_arh999 {
+											(*recipe).times += 1;
+											//(*recipe).done = true;
+
+											map_running_action_recipe_task
+												.insert(*recipe_id, recipe.clone());
+										}
 									}
 								},
 								Err(e) => {
@@ -852,6 +898,11 @@ pub mod pallet {
 			match call {
 				Call::set_recipe_done_unsigned { block_number: _, recipe_id: _ } =>
 					valid_tx(b"set_recipe_done_unsigned".to_vec()),
+				Call::update_recipe_triger_time_unsigned {
+					block_number: _,
+					recipe_id: _,
+					timestamp: _,
+				} => valid_tx(b"update_recipe_triger_time_unsigned".to_vec()),
 				Call::buy_token_unsigned {
 					block_number: _,
 					buyer: _,
@@ -1093,6 +1144,20 @@ pub mod pallet {
 			recipe_id: u64,
 		) -> Result<(), Error<T>> {
 			let call = Call::set_recipe_done_unsigned { block_number, recipe_id };
+
+			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into()).map_err(|e| {
+				log::error!("Failed in offchain_unsigned_tx {:?}", e);
+				<Error<T>>::OffchainUnsignedTxError
+			})
+		}
+
+		fn offchain_unsigned_tx_update_recipe_triger_time(
+			block_number: T::BlockNumber,
+			recipe_id: u64,
+			timestamp: u64,
+		) -> Result<(), Error<T>> {
+			let call =
+				Call::update_recipe_triger_time_unsigned { block_number, recipe_id, timestamp };
 
 			SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into()).map_err(|e| {
 				log::error!("Failed in offchain_unsigned_tx {:?}", e);
