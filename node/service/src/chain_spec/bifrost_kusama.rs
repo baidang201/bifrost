@@ -207,6 +207,7 @@ fn development_config_genesis(id: ParaId) -> GenesisConfig {
 			vec![
 				(x.clone(), CurrencyId::Stable(TokenSymbol::KUSD), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::BTC), ENDOWMENT() * 10_000),
+				(x.clone(), CurrencyId::Token(TokenSymbol::AUSD), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::KAR), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::KSM), ENDOWMENT()),
 				(x.clone(), CurrencyId::Token(TokenSymbol::DOT), ENDOWMENT()),
@@ -291,6 +292,7 @@ fn local_config_genesis(id: ParaId) -> GenesisConfig {
 			vec![
 				(x.clone(), CurrencyId::Stable(TokenSymbol::KUSD), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::BTC), ENDOWMENT() * 10_000),
+				(x.clone(), CurrencyId::Token(TokenSymbol::AUSD), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::KAR), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::KSM), ENDOWMENT() * 4_000_000),
 				(x.clone(), CurrencyId::VSToken(TokenSymbol::KSM), ENDOWMENT() * 4_000_000),
