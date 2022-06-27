@@ -25,8 +25,8 @@ use bifrost_kusama_runtime::{
 	AccountId, Balance, BalancesConfig, BlockNumber, CouncilConfig, CouncilMembershipConfig,
 	DefaultBlocksPerRound, DemocracyConfig, GenesisConfig, IndicesConfig, InflationInfo,
 	ParachainInfoConfig, ParachainStakingConfig, PolkadotXcmConfig, Range, SS58Prefix, SalpConfig,
-	SalpLiteConfig, SessionConfig, SystemConfig, TechnicalCommitteeConfig,
-	TechnicalMembershipConfig, TokensConfig, VestingConfig, SudoConfig, WASM_BINARY,
+	SalpLiteConfig, SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
+	TechnicalMembershipConfig, TokensConfig, VestingConfig, WASM_BINARY,
 };
 use bifrost_runtime_common::{dollar, AuraId};
 use cumulus_primitives_core::ParaId;
@@ -103,6 +103,7 @@ fn bifrost_kusama_properties() -> Properties {
 		CurrencyId::Token(TokenSymbol::RMRK),
 		CurrencyId::Token(TokenSymbol::MOVR),
 		CurrencyId::Token(TokenSymbol::BTC),
+		CurrencyId::Token(TokenSymbol::AUSD),
 	]
 	.iter()
 	.for_each(|token| {
@@ -205,6 +206,7 @@ fn development_config_genesis(id: ParaId) -> GenesisConfig {
 		.flat_map(|x| {
 			vec![
 				(x.clone(), CurrencyId::Stable(TokenSymbol::KUSD), ENDOWMENT() * 10_000),
+				(x.clone(), CurrencyId::Token(TokenSymbol::BTC), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::KAR), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::KSM), ENDOWMENT()),
 				(x.clone(), CurrencyId::Token(TokenSymbol::DOT), ENDOWMENT()),
@@ -288,6 +290,7 @@ fn local_config_genesis(id: ParaId) -> GenesisConfig {
 		.flat_map(|x| {
 			vec![
 				(x.clone(), CurrencyId::Stable(TokenSymbol::KUSD), ENDOWMENT() * 10_000),
+				(x.clone(), CurrencyId::Token(TokenSymbol::BTC), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::KAR), ENDOWMENT() * 10_000),
 				(x.clone(), CurrencyId::Token(TokenSymbol::KSM), ENDOWMENT() * 4_000_000),
 				(x.clone(), CurrencyId::VSToken(TokenSymbol::KSM), ENDOWMENT() * 4_000_000),
@@ -306,8 +309,14 @@ fn local_config_genesis(id: ParaId) -> GenesisConfig {
 		})
 		.collect();
 
-	let council_membership = vec![get_account_id_from_seed::<sr25519::Public>("Alice"), get_account_id_from_seed::<sr25519::Public>("Bob")];
-	let technical_committee_membership = vec![get_account_id_from_seed::<sr25519::Public>("Alice"), get_account_id_from_seed::<sr25519::Public>("Bob")];
+	let council_membership = vec![
+		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		get_account_id_from_seed::<sr25519::Public>("Bob"),
+	];
+	let technical_committee_membership = vec![
+		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		get_account_id_from_seed::<sr25519::Public>("Bob"),
+	];
 	let salp_multisig: AccountId =
 		hex!["49daa32c7287890f38b7e1a8cd2961723d36d20baa0bf3b82e0c4bdda93b1c0a"].into();
 	let salp_lite_multisig: AccountId =
@@ -417,13 +426,30 @@ fn stage_config_genesis(id: ParaId) -> GenesisConfig {
 		hex!["42f80d01d23a66a9429362a8e4f253a2a02e16c10de83a8ac1eaf6bbb7c9cb1b"].into(),
 	];
 
+	let endowed_accounts = vec![
+		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		get_account_id_from_seed::<sr25519::Public>("Bob"),
+		whitelisted_caller(), // Benchmarking whitelist_account
+	];
+
+	let tokens = endowed_accounts
+		.iter()
+		.flat_map(|x| {
+			vec![
+				(x.clone(), CurrencyId::Stable(TokenSymbol::KUSD), ENDOWMENT() * 10_000),
+				(x.clone(), CurrencyId::Token(TokenSymbol::BTC), ENDOWMENT() * 10_000),
+				(x.clone(), CurrencyId::Token(TokenSymbol::AUSD), ENDOWMENT() * 10_000),
+			]
+		})
+		.collect();
+
 	bifrost_genesis(
 		invulnerables,
 		vec![],
 		balances,
 		vec![],
 		id,
-		vec![],
+		tokens,
 		council_membership,
 		technical_committee_membership,
 		salp_multisig,
@@ -538,6 +564,23 @@ fn bifrost_config_genesis(id: ParaId) -> GenesisConfig {
 	let salp_lite_multisig: AccountId =
 		hex!["e4f78719c654cd8e8ac1375c447b7a80f9476cfe6505ea401c4b15bd6b967c93"].into();
 
+	let endowed_accounts = vec![
+		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		get_account_id_from_seed::<sr25519::Public>("Bob"),
+		whitelisted_caller(), // Benchmarking whitelist_account
+	];
+
+	let tokens = endowed_accounts
+		.iter()
+		.flat_map(|x| {
+			vec![
+				(x.clone(), CurrencyId::Stable(TokenSymbol::KUSD), ENDOWMENT() * 10_000),
+				(x.clone(), CurrencyId::Token(TokenSymbol::BTC), ENDOWMENT() * 10_000),
+				(x.clone(), CurrencyId::Token(TokenSymbol::AUSD), ENDOWMENT() * 10_000),
+			]
+		})
+		.collect();
+
 	use sp_core::sp_std::collections::btree_map::BTreeMap;
 	bifrost_genesis(
 		invulnerables,
@@ -545,7 +588,7 @@ fn bifrost_config_genesis(id: ParaId) -> GenesisConfig {
 		balances,
 		vesting_configs.into_iter().flat_map(|vc| vc.vesting).collect(),
 		id,
-		vec![], // tokens
+		tokens, // tokens
 		vec![], // council membership
 		vec![], // technical committee membership
 		salp_multisig,

@@ -277,6 +277,7 @@ create_currency_id! {
 		RMRK("RMRK Token",10) = 9,
 		MOVR("Moonriver Native Token",18) = 10,
 		BTC("Ren Protocol BTC", 8) = 20,
+		AUSD("Acala Dollar", 8) = 21,
 	}
 }
 
